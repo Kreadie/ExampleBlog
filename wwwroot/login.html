@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div id="register-container">
+        <h1>Авторизация</h1>
+        <form id="authorizeForm">
+            <p class="login-data">Имя<br /><input id="userName" name="name" /></p>
+            <p class="login-data">Пароль<br /><input id="userPass" name="password" /></p><br />
+            <button id="login-submit" type="submit">Войти</button>
+        </form>
+    </div>
+    <script>
+        async function login(event) {
+            event.preventDefault();
+            const name = document.getElementById("userName").value;
+            const password = document.getElementById("userPass").value;
+
+            if (name == "" || password == "") {
+                alert("Заполните необходимые поля");
+            }
+            else {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: name,
+                        password: password
+                    })
+                });
+
+                if (response.ok) {
+                    window.location.href = "/";
+                }
+                else 
+                    alert("Проверьте введённые данные");
+            }
+        }
+        document.getElementById("authorizeForm").addEventListener("submit", login);
+    </script>
+</body>
+</html>

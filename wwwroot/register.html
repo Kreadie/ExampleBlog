@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div id="register-container">
+        <h1>Регистрация</h1>
+        <form id="registerForm">
+            <p class="login-data">Имя<br /><input id="userName" name="name" /></p>
+            <p class="login-data">Пароль<br /><input id="userPass" name="password" /></p><br />
+            <button id="login-submit" type="submit">Зарегистрироваться</button>
+        </form>
+    </div>
+    <script>
+
+        async function createUser(event) {
+            event.preventDefault();
+            const name     = document.getElementById("userName").value;
+            const password = document.getElementById("userPass").value;
+            if (name == "" || password == "") {
+                alert("Заполните необходимые поля");
+            }
+            else {
+                const response = await fetch("/register", {
+                    method: "POST",
+                    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: name,
+                        password: password
+                    })
+                });
+                const user = await response.json();
+                if (user) {
+                    alert("Пользователь зарегистрирован");
+                    window.location.href = "/";
+                } else {
+                    alert("Такой пользователь уже существует");
+                }
+            }
+        }
+        document.getElementById("registerForm").addEventListener("submit", createUser);
+    </script>
+</body>
+</html>

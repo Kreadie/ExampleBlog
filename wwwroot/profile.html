@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Профиль  </title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <header>
+        <ul>
+            <li id="main-page"><a href="index.html">Лента</a></li>
+            <li id="profile"><a href="login">Профиль</a></li>
+        </ul>
+    </header>
+    <main>
+        <span>
+            <img id="profile-img" src="image/user/DefaultUserImg.png"/>
+            <span id ="profile-name"></span>
+        </span>
+        <form id="profile-form" enctype="multipart/form-data">
+            <input type="file" name="profile-pic" accept="image/png"/>
+            <input type="submit" id="profile-set-picture" value="Загрузить"/>
+        </form>
+        <input id="profile-logout" value="Выйти" type="button"/>
+    </main>
+    <script>
+        async function loadUser() {
+            const response = await fetch("/userdata", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                document.getElementById("profile-name").append(userData.name);
+                document.getElementById("profile-img").setAttribute("src", userData.imagePath.substr(8));
+            }
+        }
+        document.getElementById("profile-logout").onclick = async () => {
+            const response = await fetch("/logout", {
+                method: "GET"
+            });
+            if (response.ok)
+                window.location.href = "/";
+        }
+
+        async function setPicture(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch("profile/picture", {
+                method: "POST",
+                body: formData
+            });
+            window.location.reload();
+        }
+        document.getElementById("profile-form").addEventListener("submit", setPicture);
+        loadUser();
+    </script>
+</body>
+</html>

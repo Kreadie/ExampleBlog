@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Главная страница</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <header>
+        <ul>
+            <li id="main-page"><a href="index.html">Лента</a></li>
+            <li id="profile"><a href="login">Профиль</a></li>
+        </ul>
+    </header>
+    <main>
+       <form id="note-form">
+           <textarea placeholder="Напиши что-нибудь здесь!" name="text" id="note-form-text"></textarea><br />
+           <input id="note-form-submit" type="submit" value="Отправить"/>
+       </form>
+    </main>
+    <script>
+        let offset = 0;
+        async function getNotes() {
+            const response = await fetch(`/notes/${offset}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+
+            if (response.ok) {
+                const notes = await response.json();
+                const main = document.querySelector("main");
+                if (notes.length == 0) {
+                    const noNotes = document.createElement("p");
+                    noNotes.setAttribute("id", "list-no-notes");
+                    noNotes.append("Записей нет, почему бы не добавить что-то?");
+                    main.appendChild(noNotes);
+                }
+                else {
+                    outputNotes(notes);
+
+                    const buttonFlexContainer = document.createElement("div");
+                    buttonFlexContainer.setAttribute("id", "button-flex-container");
+                    const buttonNext = document.createElement("button");
+                    buttonNext.setAttribute("id", "nav-button");
+                    buttonNext.innerHTML = ">";
+                    const buttonPrev = document.createElement("button");
+                    buttonPrev.setAttribute("id", "nav-button");
+                    buttonPrev.innerHTML = "<";
+
+                    buttonNext.onclick = (e) => {
+                        e.preventDefault();
+                        let list = document.querySelectorAll("div");
+                        list.forEach(l => l.remove());
+                        getNotes(offset += 7);
+                        buttonNext.remove();
+                        buttonPrev.remove();
+                    }
+
+                    buttonPrev.onclick = (e) => {
+                        e.preventDefault();
+                        let list = document.querySelectorAll("div");
+                        list.forEach(l => l.remove());
+                        getNotes(offset -= 7);
+                        buttonNext.remove();
+                        buttonPrev.remove();
+                    }
+                    
+                    buttonNext.style.visibility = "hidden";
+                    buttonPrev.style.visibility = "hidden";
+
+                    if (offset > 0)
+                        buttonPrev.style.visibility = "visible";
+                    if (notes.length >= 7)
+                        buttonNext.style.visibility = "visible";
+
+                    buttonFlexContainer.appendChild(buttonPrev);
+                    buttonFlexContainer.appendChild(buttonNext);
+                    main.appendChild(buttonFlexContainer);
+                }
+            }
+        }
+
+        function outputNotes(notes) {
+            notes.forEach((note) => {
+                const dateOptions = {
+                    year: 'numeric', month: 'numeric', day: 'numeric',
+                    timezone: 'UTC', hour: 'numeric', minute: 'numeric'
+                };
+                const properDate = new Date(Date.parse(note.publishingDate)).toLocaleString("ru", dateOptions);
+
+                const noteHTML = `
+                <div id= "list-note">
+                    <div id = "list-note-header">
+                        <span>
+                            <img id = "list-note-user-img" src = "image/user/${note.userName}.png" onerror="this.src='image/user/DefaultUserImg.png'" />
+                            <span id = "list-note-user">${note.userName}</span>
+                        </span>
+                        <p id = "list-note-date">${properDate}</p>
+                    </div>
+                    <p id = "list-note-text">${note.text}</p>
+                    <div id = "list-options-area">
+                        <div id = "list-rating-area">
+                            <span id = "list-note-plus">+</span>    
+                            <span id = "list-note-minus">-</span>    
+                        </div>
+                        <span id = "list-note-delete">X</span>    
+                    </div>
+                </div>
+                `;
+                document.querySelector("main").insertAdjacentHTML("beforeend", noteHTML);
+            });
+        }
+
+        async function uploadNote(event) {
+            event.preventDefault();
+            const note = document.getElementById("note-form-text").value;
+            if (note == "") {
+                alert("Вы ничего не написали"); 
+            }
+            else {
+                const response = await fetch("/notes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: note })
+                });
+                if (response.ok) {
+                    document.getElementById("note-form-text").value = "";
+                    location.reload();
+                }
+                else {
+                    alert("Вы не авторизованы");
+                }
+            }
+        }
+        getNotes();
+        document.getElementById("note-form").addEventListener("submit", uploadNote);
+    </script>
+</body>
+</html>
