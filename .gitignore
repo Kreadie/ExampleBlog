@@ -1,0 +1,6 @@
+*.json 
+*.user
+*.csproj
+/bin
+/obj
+/wwwroot/image
