@@ -94,6 +94,11 @@ app.MapGet("/userdata", async (HttpContext context, ApplicationContext db) =>
 
 app.MapGet("/notes/{offset:int}", async (int offset, HttpContext context, ApplicationContext db) =>
 {
+    if(db.Users.ToList().Count == 0)
+    {
+        await context.SignOutAsync("Cookies");
+    }
+
     var test = db.Notes.FromSql($"SELECT * FROM Notes ORDER BY PublishingDate DESC OFFSET {offset} ROWS FETCH NEXT 7 ROWS ONLY").ToList();
     await context.Response.WriteAsJsonAsync(test);
 });
@@ -104,7 +109,7 @@ app.MapGet("/user/pics", async (HttpContext context, ApplicationContext db) =>
     await context.Response.WriteAsJsonAsync(userPics);
 });
 
-app.MapPost("profile/picture", async (HttpContext context, ApplicationContext db) =>
+app.MapPost("/profile/picture", async (HttpContext context, ApplicationContext db) =>
 {
     var files = context.Request.Form.Files;
     var userClaim = context.User.FindFirstValue(ClaimTypes.Name);
@@ -135,12 +140,44 @@ app.MapPost("/notes", async (Note noteText,HttpContext context, ApplicationConte
         user.Notes.Add(note);
         await db.Notes.AddAsync(note);
         await db.SaveChangesAsync();
-    } else
+    } 
+    else
         context.Response.StatusCode = 401;
 
 });
+
+app.MapDelete("/notes/delete/{guid:guid}", async (Guid guid,HttpContext context,  ApplicationContext db) =>
+{
+    if(!context.User.Identity!.IsAuthenticated)
+    {
+        context.Response.StatusCode = 401;
+        return;
+    }
+
+    var claim = context.User.FindFirstValue(ClaimTypes.Name);
+    var user = db.Users.ToList().FirstOrDefault(us => us.Name == claim);
+    Note found = db.Notes.ToList().FirstOrDefault(note => note.Guid == guid)!;
+
+    if (found.UserGuid != user?.Guid)
+    {
+        context.Response.StatusCode = 403;
+        return;
+    }
+
+    user.Notes.Remove(found);
+    db.Notes.Remove(found);
+    await db.SaveChangesAsync();
+});
+
+app.MapGet("/islogin", (HttpContext context, ApplicationContext db) =>
+{
+    if (!context.User.Identity!.IsAuthenticated)
+        context.Response.StatusCode = 401;
+});
+
 app.Run();
 //TODO: добавить параметр страниц к строке запроса
 //TODO: попытаться добавить обработку запросов только программным путём или как минимум выдавать корректный
 //      результат при непрограммномной отправке запроса (обратившись к /notes/1, нужно получить не json список
 //      а нормальное отображение на экране)
+//TODO: после очистки БД остаются пользовательские картинки

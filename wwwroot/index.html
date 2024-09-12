@@ -21,6 +21,7 @@
     </main>
     <script>
         let offset = 0;
+        const main = document.querySelector("main");
         async function getNotes() {
             const response = await fetch(`/notes/${offset}`, {
                 method: "GET",
@@ -29,7 +30,6 @@
 
             if (response.ok) {
                 const notes = await response.json();
-                const main = document.querySelector("main");
                 if (notes.length == 0) {
                     const noNotes = document.createElement("p");
                     noNotes.setAttribute("id", "list-no-notes");
@@ -38,55 +38,57 @@
                 }
                 else {
                     outputNotes(notes);
-
-                    const buttonFlexContainer = document.createElement("div");
-                    buttonFlexContainer.setAttribute("id", "button-flex-container");
-                    const buttonNext = document.createElement("button");
-                    buttonNext.setAttribute("id", "nav-button");
-                    buttonNext.innerHTML = ">";
-                    const buttonPrev = document.createElement("button");
-                    buttonPrev.setAttribute("id", "nav-button");
-                    buttonPrev.innerHTML = "<";
-
-                    buttonNext.onclick = (e) => {
-                        e.preventDefault();
-                        let list = document.querySelectorAll("div");
-                        list.forEach(l => l.remove());
-                        getNotes(offset += 7);
-                        buttonNext.remove();
-                        buttonPrev.remove();
-                    }
-
-                    buttonPrev.onclick = (e) => {
-                        e.preventDefault();
-                        let list = document.querySelectorAll("div");
-                        list.forEach(l => l.remove());
-                        getNotes(offset -= 7);
-                        buttonNext.remove();
-                        buttonPrev.remove();
-                    }
-                    
-                    buttonNext.style.visibility = "hidden";
-                    buttonPrev.style.visibility = "hidden";
-
-                    if (offset > 0)
-                        buttonPrev.style.visibility = "visible";
-                    if (notes.length >= 7)
-                        buttonNext.style.visibility = "visible";
-
-                    buttonFlexContainer.appendChild(buttonPrev);
-                    buttonFlexContainer.appendChild(buttonNext);
-                    main.appendChild(buttonFlexContainer);
+                    createNavButtons(notes); 
                 }
             }
         }
 
+        function createNavButtons(notes) {
+            const buttonFlexContainer = document.createElement("div");
+            buttonFlexContainer.setAttribute("id", "button-flex-container");
+            const buttonNext = document.createElement("button");
+            buttonNext.setAttribute("id", "nav-button");
+            buttonNext.innerHTML = ">";
+            const buttonPrev = document.createElement("button");
+            buttonPrev.setAttribute("id", "nav-button");
+            buttonPrev.innerHTML = "<";
+
+            buttonNext.onclick = (e) => {
+                e.preventDefault();
+                let list = document.querySelectorAll("div");
+                list.forEach(l => l.remove());
+                getNotes(offset += 7);
+                buttonNext.remove();
+                buttonPrev.remove();
+            }
+
+            buttonPrev.onclick = (e) => {
+                e.preventDefault();
+                let list = document.querySelectorAll("div");
+                list.forEach(l => l.remove());
+                getNotes(offset -= 7);
+                buttonNext.remove();
+                buttonPrev.remove();
+            }
+
+            buttonNext.style.visibility = "hidden";
+            buttonPrev.style.visibility = "hidden";
+
+            if (offset > 0)
+                buttonPrev.style.visibility = "visible";
+            if (notes.length >= 7)
+                buttonNext.style.visibility = "visible";
+
+            buttonFlexContainer.appendChild(buttonPrev);
+            buttonFlexContainer.appendChild(buttonNext);
+            main.appendChild(buttonFlexContainer);
+        }
         function outputNotes(notes) {
+            const dateOptions = {
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                timezone: 'UTC', hour: 'numeric', minute: 'numeric'
+            };
             notes.forEach((note) => {
-                const dateOptions = {
-                    year: 'numeric', month: 'numeric', day: 'numeric',
-                    timezone: 'UTC', hour: 'numeric', minute: 'numeric'
-                };
                 const properDate = new Date(Date.parse(note.publishingDate)).toLocaleString("ru", dateOptions);
 
                 const noteHTML = `
@@ -104,33 +106,76 @@
                             <span id = "list-note-plus">+</span>    
                             <span id = "list-note-minus">-</span>    
                         </div>
-                        <span id = "list-note-delete">X</span>    
+                        <span id = "list-note-delete" class ="delete-note">X</span>    
                     </div>
                 </div>
                 `;
-                document.querySelector("main").insertAdjacentHTML("beforeend", noteHTML);
+
+                main.insertAdjacentHTML("beforeend", noteHTML);
+
+                //if (await checkLogin()) {
+
+                //}
+
+                let btnDelete = document.querySelectorAll(".delete-note");
+                btnDelete = btnDelete[btnDelete.length - 1];
+
+
+                btnDelete.onclick = (event) => deleteNote(event, note);
             });
+        }
+
+        async function deleteNote(event, note) {
+            if (!await checkLogin()) {
+                alert("Вы не вошли в систему");
+                return;
+            }
+            event.preventDefault();
+            const response = await fetch(`/notes/delete/${note.guid}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(note.guid)
+            });
+            if (response.ok) {
+                window.location.reload();
+            }
+            else {
+                alert("Не получилось удалить запись");
+            }
+        }
+
+        async function checkLogin() {
+            const response = await fetch("/islogin", {
+                method: "GET",
+                headers: {"Accpt": "application/json"}
+            });
+
+            if (response.ok) {
+                return true;
+            }
+            return false;
         }
 
         async function uploadNote(event) {
             event.preventDefault();
+            if (!await checkLogin()) {
+                alert("Вы не вошли в систему");
+                return;
+            }
             const note = document.getElementById("note-form-text").value;
             if (note == "") {
                 alert("Вы ничего не написали"); 
+                return;
             }
-            else {
-                const response = await fetch("/notes", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: note })
-                });
-                if (response.ok) {
-                    document.getElementById("note-form-text").value = "";
-                    location.reload();
-                }
-                else {
-                    alert("Вы не авторизованы");
-                }
+            
+            const response = await fetch("/notes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: note })
+            });
+            if (response.ok) {
+                document.getElementById("note-form-text").value = "";
+                location.reload();
             }
         }
         getNotes();

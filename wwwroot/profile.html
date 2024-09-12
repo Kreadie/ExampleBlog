@@ -47,7 +47,7 @@
         async function setPicture(event) {
             event.preventDefault();
             const formData = new FormData(this);
-            const response = await fetch("profile/picture", {
+            const response = await fetch("/profile/picture", {
                 method: "POST",
                 body: formData
             });
