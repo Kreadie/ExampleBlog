@@ -11,7 +11,7 @@ namespace BlogTest
         public int Age { get; set; }
         public float Rep { get; set; } = 0;
         public List<Note> Notes { get; set; } = new List<Note>();
-        public string ImagePath { get; set; } = "wwwroot/image/user/DefaultUserImg.png";
+        public string ImagePath { get; set; } = "wwwroot/image/user/_.png";
 
     }
 }

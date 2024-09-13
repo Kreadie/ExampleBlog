@@ -10,8 +10,26 @@ builder.Services.AddServices(connection);
 var app = builder.Build();
 app.AddMiddleware();
 
+
+async void onDbDeletion(HttpContext context)
+{
+    await context.SignOutAsync("Cookies");
+    string path = Environment.CurrentDirectory + "\\wwwroot\\image\\user";
+    string[] files = Directory.GetFiles(path);
+
+    foreach (var f in files)
+    {
+        if (f != path + "\\_.png")
+            File.Delete(f);
+    } 
+}
+
 app.Use(async (context, next) =>
 {
+    var db = context.RequestServices.GetService<ApplicationContext>();
+    if (db?.Users.ToList().Count == 0)
+        onDbDeletion(context);
+
     await next.Invoke();
 
     if(context.Response.StatusCode == 404)
@@ -94,11 +112,6 @@ app.MapGet("/userdata", async (HttpContext context, ApplicationContext db) =>
 
 app.MapGet("/notes/{offset:int}", async (int offset, HttpContext context, ApplicationContext db) =>
 {
-    if(db.Users.ToList().Count == 0)
-    {
-        await context.SignOutAsync("Cookies");
-    }
-
     var test = db.Notes.FromSql($"SELECT * FROM Notes ORDER BY PublishingDate DESC OFFSET {offset} ROWS FETCH NEXT 7 ROWS ONLY").ToList();
     await context.Response.WriteAsJsonAsync(test);
 });
@@ -127,7 +140,7 @@ app.MapPost("/profile/picture", async (HttpContext context, ApplicationContext d
     db.Users.Update(user);
     await db.SaveChangesAsync();
 });
-
+ 
 app.MapPost("/notes", async (Note noteText,HttpContext context, ApplicationContext db) =>
 {
     if(context.User.Identity!.IsAuthenticated && noteText.Text != "")
@@ -175,9 +188,17 @@ app.MapGet("/islogin", (HttpContext context, ApplicationContext db) =>
         context.Response.StatusCode = 401;
 });
 
+app.MapGet("/check-who/{name}", async (string name, HttpContext context, ApplicationContext db) =>
+{
+    var claim = context.User.FindFirstValue(ClaimTypes.Name);
+
+    if (!context.User.Identity!.IsAuthenticated && claim != name)
+        context.Response.StatusCode = 401;
+    await context.Response.WriteAsJsonAsync(claim);
+});
+
 app.Run();
-//TODO: добавить параметр страниц к строке запроса
+//TODO: добавить параметр страниц к строке запроса (?)
 //TODO: попытаться добавить обработку запросов только программным путём или как минимум выдавать корректный
 //      результат при непрограммномной отправке запроса (обратившись к /notes/1, нужно получить не json список
 //      а нормальное отображение на экране)
-//TODO: после очистки БД остаются пользовательские картинки

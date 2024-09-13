@@ -37,7 +37,7 @@
                     main.appendChild(noNotes);
                 }
                 else {
-                    outputNotes(notes);
+                    await outputNotes(notes);
                     createNavButtons(notes); 
                 }
             }
@@ -83,46 +83,57 @@
             buttonFlexContainer.appendChild(buttonNext);
             main.appendChild(buttonFlexContainer);
         }
-        function outputNotes(notes) {
+
+        async function outputNotes(notes) {
             const dateOptions = {
                 year: 'numeric', month: 'numeric', day: 'numeric',
                 timezone: 'UTC', hour: 'numeric', minute: 'numeric'
             };
-            notes.forEach((note) => {
+            for(let note of notes) {
                 const properDate = new Date(Date.parse(note.publishingDate)).toLocaleString("ru", dateOptions);
 
                 const noteHTML = `
-                <div id= "list-note">
-                    <div id = "list-note-header">
+                <div class = "list-note">
+                    <div class = "list-note-header">
                         <span>
-                            <img id = "list-note-user-img" src = "image/user/${note.userName}.png" onerror="this.src='image/user/DefaultUserImg.png'" />
-                            <span id = "list-note-user">${note.userName}</span>
+                            <img class = "list-note-user-img" src = "image/user/${note.userName}.png" onerror="this.src='image/user/_.png'" />
+                            <span class = "list-note-user">${note.userName}</span>
                         </span>
-                        <p id = "list-note-date">${properDate}</p>
+                        <p class = "list-note-date">${properDate}</p>
                     </div>
-                    <p id = "list-note-text">${note.text}</p>
-                    <div id = "list-options-area">
-                        <div id = "list-rating-area">
-                            <span id = "list-note-plus">+</span>    
-                            <span id = "list-note-minus">-</span>    
+                    <p class = "list-note-text">${note.text}</p>
+                    <div class = "list-options-area">
+                        <div class = "list-rating-area">
+                            <span class = "list-note-plus">+</span>    
+                            <span class = "list-note-minus">-</span>    
                         </div>
-                        <span id = "list-note-delete" class ="delete-note">X</span>    
+                            
                     </div>
                 </div>
                 `;
 
                 main.insertAdjacentHTML("beforeend", noteHTML);
+                await createDeleteButtons(note)
 
-                //if (await checkLogin()) {
+            }
+        }
 
-                //}
+        async function createDeleteButtons(note) {
+            const isAuthor = await checkWho(note.userName);
+            if (isAuthor == note.userName) {
+                const deleteB = document.createElement("span");
+                deleteB.innerHTML = "X";
+                deleteB.setAttribute("class", "list-note-delete");
 
-                let btnDelete = document.querySelectorAll(".delete-note");
+                let listRating = document.querySelectorAll(".list-options-area");
+                listRating = listRating[listRating.length - 1];
+                listRating.insertAdjacentElement("beforeend", deleteB);
+
+                let btnDelete = document.querySelectorAll(".list-note-delete");
                 btnDelete = btnDelete[btnDelete.length - 1];
 
-
                 btnDelete.onclick = (event) => deleteNote(event, note);
-            });
+            }
         }
 
         async function deleteNote(event, note) {
@@ -146,12 +157,24 @@
 
         async function checkLogin() {
             const response = await fetch("/islogin", {
-                method: "GET",
-                headers: {"Accpt": "application/json"}
+                method: "GET"
             });
 
             if (response.ok) {
                 return true;
+            }
+            return false;
+        }
+
+        async function checkWho(name) {
+            const response = await fetch(`/check-who/${name}`, {
+                method: "GET",
+                headers: {"Accept": "application/json"}
+            });
+
+            if (response.ok) {
+                const user = await response.json();
+                return user;
             }
             return false;
         }
