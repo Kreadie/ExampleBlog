@@ -1,6 +1,7 @@
 using BlogTest;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -141,7 +142,7 @@ app.MapPost("/profile/picture", async (HttpContext context, ApplicationContext d
     await db.SaveChangesAsync();
 });
  
-app.MapPost("/notes", async (Note noteText,HttpContext context, ApplicationContext db) =>
+app.MapPost("/notes", async (Note noteText, HttpContext context, ApplicationContext db) =>
 {
     if(context.User.Identity!.IsAuthenticated && noteText.Text != "")
     {
@@ -159,7 +160,7 @@ app.MapPost("/notes", async (Note noteText,HttpContext context, ApplicationConte
 
 });
 
-app.MapDelete("/notes/delete/{guid:guid}", async (Guid guid,HttpContext context,  ApplicationContext db) =>
+app.MapDelete("/notes/delete/{guid:guid}", async (Guid guid, HttpContext context,  ApplicationContext db) =>
 {
     if(!context.User.Identity!.IsAuthenticated)
     {
@@ -180,6 +181,72 @@ app.MapDelete("/notes/delete/{guid:guid}", async (Guid guid,HttpContext context,
     user.Notes.Remove(found);
     db.Notes.Remove(found);
     await db.SaveChangesAsync();
+});
+
+app.MapPost("/notes/rating/{type}", async (Note note, string type, HttpContext context, ApplicationContext db) =>
+{
+     if(!context.User.Identity!.IsAuthenticated)
+    {
+        context.Response.StatusCode = 401;
+        return;
+    }
+    var claim = context.User.FindFirstValue(ClaimTypes.Name);
+    var user = db.Users.ToList().FirstOrDefault(us => us.Name == claim);
+
+    Note found = db.Notes.ToList().FirstOrDefault(n => n.Guid == note.Guid)!;
+    bool containsYes = found!.WhoLiked.Contains(user!.Name);
+    bool containsNo = found!.WhoDisliked.Contains(user!.Name);
+
+    if(!containsYes && !containsNo)
+    {
+        if(type == "+")
+        {
+            found.WhoLiked.Add(user.Name);
+        }
+        else if(type == "-") 
+        {
+            found.WhoDisliked.Add(user.Name);
+        }
+        found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
+        db.Notes.Update(found);
+        await db.SaveChangesAsync();
+        return;
+    }
+
+    if(containsYes)
+    {
+        if (type == "+")
+        {
+            found.WhoLiked.Remove(user.Name);
+        }
+        else if (type == "-")
+        {
+            found.WhoLiked.Remove(user.Name);
+            found.WhoDisliked.Add(user.Name);
+        }
+        found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
+        db.Notes.Update(found);
+        await db.SaveChangesAsync();
+        return;
+    }
+
+    if (containsNo)
+    {
+        if (type == "+")
+        {
+            found.WhoDisliked.Remove(user.Name);
+            found.WhoLiked.Add(user.Name);
+        }
+        else if (type == "-")
+        {
+            found.WhoDisliked.Remove(user.Name);
+        }
+        found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
+        db.Notes.Update(found);
+        await db.SaveChangesAsync();
+        return;
+    }
+
 });
 
 app.MapGet("/islogin", (HttpContext context, ApplicationContext db) =>

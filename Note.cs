@@ -10,6 +10,9 @@ namespace BlogTest
         public Guid UserGuid { get; set; } // F. key
         public string UserName { get; set; } = null!; // Nav prop
         public DateTime PublishingDate { get; set; }
+        public int Rating { get; set; } = 0;
+        public List<string> WhoLiked { get; set; } = new List<string>();
+        public List<string> WhoDisliked { get; set; } = new List<string>();
 
     }
 }

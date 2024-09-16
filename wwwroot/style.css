@@ -1,4 +1,23 @@
-﻿* {
+﻿/*===Hint===*/
+/*@media (min-width:320px) {*/ /* smartphones, iPhone, portrait 480x320 phones */
+/*}
+
+@media (min-width:481px) {*/ /* portrait e-readers (Nook/Kindle), smaller tablets @ 600 or @ 640 wide. */
+/*}
+
+@media (min-width:641px) {*/ /* portrait tablets, portrait iPad, landscape e-readers, landscape 800x480 or 854x480 phones */
+/*}
+
+@media (min-width:961px) {*/ /* tablet, landscape iPad, lo-res laptops ands desktops */
+/*}
+
+@media (min-width:1025px) {*/ /* big landscape tablets, laptops, and desktops */
+/*}
+
+@media (min-width:1281px) {*/ /* hi-res laptops and desktops */
+/*}*/
+
+* {
     margin: 0;
     padding: 0;
 }
@@ -86,6 +105,12 @@ a:visited {
     margin-bottom: 5px;
 }
 
+.list-note-user-img {
+    width: 30px;
+    height: 30px;
+    padding-left: 10px;
+}
+
 .list-note-user {
     font-size: 2.5vh;
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
@@ -114,11 +139,6 @@ a:visited {
     padding-bottom: 100px;
 }
 
-.list-note-user-img{
-    width: 30px;
-    height: 30px;
-    padding-left: 10px;
-}
 .list-options-area {
     display: flex;
     padding: 10px;
@@ -126,6 +146,15 @@ a:visited {
     font-size: 25px;
     font-weight: bold;
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+.list-note-plus {
+    padding-right: 10px;
+    cursor: pointer;
+}
+.list-note-minus  {
+    padding-left: 10px;
+    cursor: pointer;
 }
 .list-note-delete {
     cursor: pointer;
@@ -140,6 +169,46 @@ a:visited {
 #nav-button {
     width: 200px;
 }
+
+@media (max-width: 1024px)  {
+
+    main {
+        width: 85vw;
+    }
+
+    ul {
+        justify-content: space-between;
+    }
+
+    #note-form {
+        padding-top: 2vw;
+        margin: 0 auto;
+        width: 75vw;
+        height: 10vh;
+    }
+
+    #note-form-text {
+        width: 99%;
+    }
+
+    .list-note {
+        width: 75vw;
+    }
+
+    .list-note-user-img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .list-note-user {
+        padding-left: 10px;
+    }
+
+    .list-note-date {
+        padding-right: 10px;
+    }
+}
+
 
 /*profile.html*/
 
@@ -156,6 +225,7 @@ a:visited {
 #profile-logout {
     display: block;
 }
+
 
 
 /*login.html*/

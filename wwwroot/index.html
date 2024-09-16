@@ -103,21 +103,53 @@
                     </div>
                     <p class = "list-note-text">${note.text}</p>
                     <div class = "list-options-area">
-                        <div class = "list-rating-area">
-                            <span class = "list-note-plus">+</span>    
-                            <span class = "list-note-minus">-</span>    
+                        <div class = "list-rating-area">   
                         </div>
                             
                     </div>
+                    <span> ${note.rating} </span>
                 </div>
                 `;
 
                 main.insertAdjacentHTML("beforeend", noteHTML);
-                await createDeleteButtons(note)
+                await createRatingButtons(note);
+                await createDeleteButtons(note);
 
             }
         }
 
+
+        async function createRatingButtons(note) {
+            const btnPlus = document.createElement("span");
+            btnPlus.setAttribute("class", "list-note-plus");
+            btnPlus.innerHTML = "+";
+            const btnMinus = document.createElement("span");
+            btnMinus.setAttribute("class", "list-note-minus");
+            btnMinus.innerHTML = "-";
+
+            let ratingArea = document.querySelectorAll(".list-rating-area");
+            ratingArea = ratingArea[ratingArea.length - 1];
+            ratingArea.appendChild(btnPlus);
+            ratingArea.appendChild(btnMinus);
+
+            btnPlus.onclick = () => rate(note, btnPlus);
+            btnMinus.onclick = () => rate(note, btnMinus);
+
+        }
+
+        async function rate(note, button) {
+            const response = await fetch(`/notes/rating/${button.innerHTML}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(note)
+            });
+            if (response.ok) {
+                window.location.reload();
+            }
+            else {
+                alert("Вы не вошли в систему");
+            }
+        }
         async function createDeleteButtons(note) {
             const isAuthor = await checkWho(note.userName);
             if (isAuthor == note.userName) {
