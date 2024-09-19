@@ -37,7 +37,7 @@
                     main.appendChild(noNotes);
                 }
                 else {
-                    await outputNotes(notes);
+                    await createNoteElements(notes);
                     createNavButtons(notes); 
                 }
             }
@@ -84,13 +84,13 @@
             main.appendChild(buttonFlexContainer);
         }
 
-        async function outputNotes(notes) {
+        async function createNoteElements(notes) {
             const dateOptions = {
                 year: 'numeric', month: 'numeric', day: 'numeric',
                 timezone: 'UTC', hour: 'numeric', minute: 'numeric'
             };
             for(let note of notes) {
-                const properDate = new Date(Date.parse(note.publishingDate)).toLocaleString("ru", dateOptions);
+                const dateFormat = new Date(Date.parse(note.publishingDate)).toLocaleString("ru", dateOptions);
 
                 const noteHTML = `
                 <div class = "list-note">
@@ -99,7 +99,7 @@
                             <img class = "list-note-user-img" src = "image/user/${note.userName}.png" onerror="this.src='image/user/_.png'" />
                             <span class = "list-note-user">${note.userName}</span>
                         </span>
-                        <p class = "list-note-date">${properDate}</p>
+                        <p class = "list-note-date">${dateFormat}</p>
                     </div>
                     <p class = "list-note-text">${note.text}</p>
                     <div class = "list-options-area">
@@ -132,6 +132,8 @@
             ratingArea.appendChild(btnPlus);
             ratingArea.appendChild(btnMinus);
 
+            await rateStatus(note, btnPlus, btnMinus);
+
             btnPlus.onclick = () => rate(note, btnPlus);
             btnMinus.onclick = () => rate(note, btnMinus);
 
@@ -140,19 +142,48 @@
         async function rate(note, button) {
             const response = await fetch(`/notes/rating/${button.innerHTML}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
                 body: JSON.stringify(note)
             });
             if (response.ok) {
                 window.location.reload();
+                /*rateStatus(note, button);*/
             }
             else {
                 alert("Вы не вошли в систему");
             }
         }
+
+        async function rateStatus(note, ...buttons) {
+            //const allButtons = buttons[0].parentElement.children;
+            //for (let item of allButtons)
+            //    item.style.color = "BLACK";
+
+            const currentUser = await whoIsCurrentUser();
+            const foundL = note.whoLiked.find((item) => item == currentUser);
+            const foundD = note.whoDisliked.find((item) => item == currentUser);
+            //if (!currentUser || buttons.length == 0) return;
+
+            //if (buttons.length == 1) {
+            //    if (foundL) {
+            //        buttons[0].style.color = "GREEN";
+            //    }
+            //    else if (foundD) {
+            //        buttons[0].style.color = "RED";
+            //    }
+            //    return;
+            //}
+            
+            if (foundL) {
+                buttons[0].style.color = "GREEN";
+            } else if (foundD) {
+                buttons[1].style.color = "RED";
+            }
+        }
+
         async function createDeleteButtons(note) {
-            const isAuthor = await checkWho(note.userName);
-            if (isAuthor == note.userName) {
+            const currentUser = await whoIsCurrentUser();
+            if (currentUser == note.userName) {
                 const deleteB = document.createElement("span");
                 deleteB.innerHTML = "X";
                 deleteB.setAttribute("class", "list-note-delete");
@@ -189,7 +220,8 @@
 
         async function checkLogin() {
             const response = await fetch("/islogin", {
-                method: "GET"
+                method: "GET",
+                headers: {"Accept": "application/json"}
             });
 
             if (response.ok) {
@@ -198,15 +230,14 @@
             return false;
         }
 
-        async function checkWho(name) {
-            const response = await fetch(`/check-who/${name}`, {
+        async function whoIsCurrentUser(name) {
+            const response = await fetch(`/check-who`, {
                 method: "GET",
                 headers: {"Accept": "application/json"}
             });
 
             if (response.ok) {
-                const user = await response.json();
-                return user;
+                return await response.json();
             }
             return false;
         }

@@ -185,7 +185,7 @@ app.MapDelete("/notes/delete/{guid:guid}", async (Guid guid, HttpContext context
 
 app.MapPost("/notes/rating/{type}", async (Note note, string type, HttpContext context, ApplicationContext db) =>
 {
-     if(!context.User.Identity!.IsAuthenticated)
+    if(!context.User.Identity!.IsAuthenticated)
     {
         context.Response.StatusCode = 401;
         return;
@@ -197,55 +197,42 @@ app.MapPost("/notes/rating/{type}", async (Note note, string type, HttpContext c
     bool containsYes = found!.WhoLiked.Contains(user!.Name);
     bool containsNo = found!.WhoDisliked.Contains(user!.Name);
 
-    if(!containsYes && !containsNo)
-    {
-        if(type == "+")
-        {
-            found.WhoLiked.Add(user.Name);
-        }
-        else if(type == "-") 
-        {
-            found.WhoDisliked.Add(user.Name);
-        }
-        found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
-        db.Notes.Update(found);
-        await db.SaveChangesAsync();
-        return;
-    }
-
     if(containsYes)
     {
-        if (type == "+")
+        found.WhoLiked.Remove(user.Name);
+        if (type == "-")
         {
-            found.WhoLiked.Remove(user.Name);
-        }
-        else if (type == "-")
-        {
-            found.WhoLiked.Remove(user.Name);
             found.WhoDisliked.Add(user.Name);
         }
         found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
         db.Notes.Update(found);
         await db.SaveChangesAsync();
-        return;
-    }
-
-    if (containsNo)
+    } else if (containsNo)
     {
+        found.WhoDisliked.Remove(user.Name);
         if (type == "+")
         {
-            found.WhoDisliked.Remove(user.Name);
             found.WhoLiked.Add(user.Name);
-        }
-        else if (type == "-")
-        {
-            found.WhoDisliked.Remove(user.Name);
         }
         found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
         db.Notes.Update(found);
         await db.SaveChangesAsync();
-        return;
+    } else
+    {
+        if (type == "+")
+        {
+            found.WhoLiked.Add(user.Name);
+        }
+        else if (type == "-")
+        {
+            found.WhoDisliked.Add(user.Name);
+        }
+        found.Rating = found.WhoLiked.Count() - found.WhoDisliked.Count();
+        db.Notes.Update(found);
+        await db.SaveChangesAsync();
     }
+
+    await context.Response.WriteAsJsonAsync(note.Rating);
 
 });
 
@@ -255,17 +242,14 @@ app.MapGet("/islogin", (HttpContext context, ApplicationContext db) =>
         context.Response.StatusCode = 401;
 });
 
-app.MapGet("/check-who/{name}", async (string name, HttpContext context, ApplicationContext db) =>
+app.MapGet("/check-who/", async (HttpContext context, ApplicationContext db) =>
 {
-    var claim = context.User.FindFirstValue(ClaimTypes.Name);
-
-    if (!context.User.Identity!.IsAuthenticated && claim != name)
+    if (!context.User.Identity!.IsAuthenticated)
         context.Response.StatusCode = 401;
+    var claim = context.User.FindFirstValue(ClaimTypes.Name);
     await context.Response.WriteAsJsonAsync(claim);
 });
 
 app.Run();
 //TODO: добавить параметр страниц к строке запроса (?)
-//TODO: попытаться добавить обработку запросов только программным путём или как минимум выдавать корректный
-//      результат при непрограммномной отправке запроса (обратившись к /notes/1, нужно получить не json список
-//      а нормальное отображение на экране)
+//TODO: добавлять оценку без перезагрузки страницы
