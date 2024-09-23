@@ -1,4 +1,5 @@
 using BlogTest;
+using BlogTest.model;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
@@ -90,15 +91,22 @@ app.MapPost("/register", async (User user, HttpContext context,ApplicationContex
 {
     if (user.Name == "" || user.Password == "")
         return null;
-    var existingUser = db.Users.ToList().FirstOrDefault(u => user.Name == u.Name) ?? null;
+    var existingUser = db.Users.ToList().FirstOrDefault(u => u.Name == u.Name) ?? null;
 
     if(existingUser != null)
         return null;
 
-    user.Guid = Guid.NewGuid();
-    await db.Users.AddAsync(user);
+    User? us = User.Create(Guid.NewGuid(), user.Name, user.Password).Item1;
+    if(us is null)
+    {
+        context.Response.StatusCode = 400;
+        return null;
+    }
+
+    await db.Users.AddAsync(us);
     await db.SaveChangesAsync();
-    return user;
+    return us;
+    
 });
 
 app.MapGet("/userdata", async (HttpContext context, ApplicationContext db) =>
@@ -142,22 +150,24 @@ app.MapPost("/profile/picture", async (HttpContext context, ApplicationContext d
     await db.SaveChangesAsync();
 });
  
-app.MapPost("/notes", async (Note noteText, HttpContext context, ApplicationContext db) =>
+app.MapPost("/notes", async (Note n, HttpContext context, ApplicationContext db) =>
 {
-    if(context.User.Identity!.IsAuthenticated && noteText.Text != "")
+    if(context.User.Identity!.IsAuthenticated && n.Text != "")
     {
         var userClaim = context.User.FindFirstValue(ClaimTypes.Name);
         var user = db.Users.ToList().FirstOrDefault(us => us.Name == userClaim);
-        Note note = new Note { Guid = Guid.NewGuid(), Text = noteText.Text,
-                               UserName = user!.Name, UserGuid = user!.Guid,
-                               PublishingDate = DateTime.Now};
+        Note? note = Note.Create(Guid.NewGuid(), n.Text, user!.Guid, user.Name, DateTime.Now).Item1;
+        if(note is null)
+        {
+            context.Response.StatusCode = 400;
+            return;
+        } 
         user.Notes.Add(note);
         await db.Notes.AddAsync(note);
         await db.SaveChangesAsync();
     } 
     else
         context.Response.StatusCode = 401;
-
 });
 
 app.MapDelete("/notes/delete/{guid:guid}", async (Guid guid, HttpContext context,  ApplicationContext db) =>
@@ -239,7 +249,9 @@ app.MapPost("/notes/rating/{type}", async (Note note, string type, HttpContext c
 app.MapGet("/islogin", (HttpContext context, ApplicationContext db) =>
 {
     if (!context.User.Identity!.IsAuthenticated)
-        context.Response.StatusCode = 401;
+        return Results.StatusCode(401);
+    return Results.Ok();
+
 });
 
 app.MapGet("/check-who/", async (HttpContext context, ApplicationContext db) =>
@@ -251,5 +263,3 @@ app.MapGet("/check-who/", async (HttpContext context, ApplicationContext db) =>
 });
 
 app.Run();
-//TODO: добавить параметр страниц к строке запроса (?)
-//TODO: добавлять оценку без перезагрузки страницы

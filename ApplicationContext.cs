@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BlogTest.model;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlogTest
 {

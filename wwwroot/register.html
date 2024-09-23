@@ -32,8 +32,7 @@
                         password: password
                     })
                 });
-                const user = await response.json();
-                if (user) {
+                if (response.ok) {
                     alert("Пользователь зарегистрирован");
                     window.location.href = "/";
                 } else {
